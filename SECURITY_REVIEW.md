@@ -51,6 +51,54 @@ No evidence found of:
 | 10 | Example code encourages storing credentials in plaintext JSON | `examples/basic.py` |
 | 11 | Outdated user-agent strings (Chrome 66, iPhone 8.3) | `client.py:26-31,46` |
 
+## Cross-Check with Official PyPI Package (v2.3.1)
+
+**Official package:** https://pypi.org/project/linkedin-api/ (v2.3.1, Nov 2024)
+**This repo version:** v1.1.0 (heavily outdated)
+
+### This repo is a very old fork. The upstream has diverged significantly.
+
+| Aspect | This Repo (v1.1.0) | PyPI Latest (v2.3.1) |
+|--------|---------------------|----------------------|
+| **SSL verify=False on auth** | YES — CRITICAL | NO — Fixed |
+| **debug=True default** | YES — disables SSL globally | NO — defaults to `debug=False` |
+| **disable_warnings()** | YES — silences SSL warnings | NO — Removed |
+| **session.verify = not debug** | YES — SSL tied to debug flag | NO — Removed entirely |
+| **Hardcoded credentials** | YES (test_acct.py) | NO |
+| **Cookie storage** | Single `.cookie.jr` file via pickle | Per-user files in `~/.linkedin_api/cookies/` via pickle |
+| **Cookie expiry check** | NO | YES — checks JSESSIONID expiry |
+| **Python version** | 3.7+ | 3.10+ |
+| **linkedin.py size** | 681 lines | ~1600+ lines (many new features) |
+| **helpers.py** | 7 lines (1 function) | 267 lines (12+ functions) |
+| **Auth user-agent** | iPhone 8.3 (2015-era) | Android (more current) |
+| **Browser user-agent** | Chrome 66 (2018) | Chrome 83 (2020) |
+| **Metadata fetching** | NO | YES — parses LinkedIn page for app instance data |
+| **New file: cookie_repository.py** | NO | YES — dedicated cookie management class |
+| **Mutable default args** | YES (`results=[]`) | NO — Fixed |
+| **Features** | Basic (search, profile, messages) | Extended (posts, reactions, jobs, invitations, company pages) |
+
+### Key Security Fixes in Upstream (v2.3.1)
+
+1. **`verify=False` removed** — authentication uses default SSL verification (True)
+2. **`disable_warnings()` removed** — security warnings are no longer silenced
+3. **`session.verify = not debug` removed** — SSL is never disabled regardless of debug mode
+4. **`debug=False` by default** — safe default
+5. **Cookie expiry validation** — stale cookies raise `LinkedinSessionExpired`
+6. **Per-user cookie files** — stored in `~/.linkedin_api/cookies/<username>.jr`
+
+### Remaining Concerns in Upstream (v2.3.1)
+
+1. **Cookies still stored via pickle** — unencrypted, but now per-user and in home directory
+2. **No credential memory clearing** — passwords still in memory during session
+3. **Pickle deserialization risk** — `pickle.load()` on cookie files (low risk since user-controlled)
+
+### Verdict
+
+**This repo is an outdated, insecure fork.** The upstream PyPI version (2.3.1) has fixed all three CRITICAL issues found in this repo. If you need this library, use the official PyPI package instead:
+```
+pip install linkedin-api
+```
+
 ## Recommendations
 
 1. **Remove `verify=False`** from authentication request (client.py:124)
@@ -60,3 +108,4 @@ No evidence found of:
 5. **Encrypt stored cookies** or use OS keychain instead of plaintext pickle
 6. **Clear credentials from memory** after authentication
 7. **Fix mutable default arguments** (`results=[]` → `results=None`)
+8. **Or better yet: upgrade to upstream v2.3.1** which fixes issues 1-4 and 7
